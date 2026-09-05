@@ -48,11 +48,13 @@ fn main() {
                 }
             }
         }
+        log_debug(&format!("FindWindow existing: 0x{:X}", existing_wnd.0 as usize));
 
         // Single-instance mutex lock
         let mutex_name = w!("Global\\WindowDisplaySwapper_SingleInstanceMutex");
         let mutex = CreateMutexW(None, true, mutex_name);
         if windows::Win32::Foundation::GetLastError() == windows::Win32::Foundation::ERROR_ALREADY_EXISTS {
+            log_debug("Mutex exists, waiting for ownership...");
             if let Ok(m) = mutex {
                 let _ = WaitForSingleObject(m, 1200);
             }
@@ -68,10 +70,11 @@ fn main() {
             lpszClassName: CLASS_MAIN_WINDOW,
             ..Default::default()
         };
-        let _ = RegisterClassW(&wc);
+        let reg = RegisterClassW(&wc);
+        log_debug(&format!("RegisterClassW atom: {}", reg));
 
         // Create message window for tray icon and display change events
-        let hwnd = CreateWindowExW(
+        let hwnd = match CreateWindowExW(
             Default::default(),
             CLASS_MAIN_WINDOW,
             w!("Window Display Swapper Daemon"),
@@ -84,7 +87,14 @@ fn main() {
             None,
             instance,
             None,
-        ).unwrap();
+        ) {
+            Ok(h) => h,
+            Err(e) => {
+                log_debug(&format!("CreateWindowExW failed: {:?}", e));
+                return;
+            }
+        };
+        log_debug(&format!("CreateWindowExW succeeded: HWND=0x{:X}", hwnd.0 as usize));
 
         // Initialize Tray Icon
         tray::init_tray_icon(hwnd);
@@ -95,12 +105,16 @@ fn main() {
         // Install Taskbar Mouse & WinEvent hooks
         taskbar::init_taskbar_hooks();
 
+        log_debug("Entering GetMessageW message loop");
+
         // Run Windows Message Loop
         let mut msg: MSG = std::mem::zeroed();
         while GetMessageW(&mut msg, None, 0, 0).as_bool() {
             let _ = TranslateMessage(&msg);
             DispatchMessageW(&msg);
         }
+
+        log_debug(&format!("Exited GetMessageW message loop, last msg=0x{:X}", msg.message));
 
         // Cleanup on exit
         taskbar::cleanup_taskbar_hooks();

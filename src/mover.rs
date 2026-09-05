@@ -42,6 +42,7 @@ pub fn is_game(
         || class_lower.contains("godot")
         || class_lower.contains("sfml_window")
         || class_lower.contains("yygame")
+        || class_lower.contains("aceapp")
         || class_lower.contains("launchunrealuwindowsclient")
     {
         return true;
