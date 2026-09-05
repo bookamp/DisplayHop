@@ -154,6 +154,28 @@ pub unsafe fn get_process_name(pid: u32) -> Option<String> {
     }
 }
 
+pub unsafe fn get_process_path(pid: u32) -> Option<String> {
+    if pid == 0 {
+        return None;
+    }
+    let proc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
+    let mut buf = [0u16; 512];
+    let mut size = 512u32;
+    let ok = QueryFullProcessImageNameW(
+        proc,
+        PROCESS_NAME_FORMAT(0),
+        windows::core::PWSTR(buf.as_mut_ptr()),
+        &mut size,
+    );
+    let _ = CloseHandle(proc);
+    if ok.is_ok() && size > 0 {
+        Some(String::from_utf16_lossy(&buf[..size as usize]))
+    } else {
+        None
+    }
+}
+
+
 pub fn build_search_terms(raw_name: &str) -> Vec<String> {
     let mut terms = Vec::new();
     let lower = raw_name.to_lowercase();

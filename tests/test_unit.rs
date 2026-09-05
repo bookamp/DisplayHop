@@ -2,9 +2,10 @@ use window_display_swapper::companion_ui::{
     calculate_submenu_position, font_size_for_dpi, scale_dpi,
 };
 use window_display_swapper::monitor::MonitorInfo;
-use window_display_swapper::mover::calculate_target_window_bounds;
+use window_display_swapper::mover::{calculate_target_window_bounds, is_game};
 use window_display_swapper::taskbar::build_search_terms;
 use windows::Win32::Foundation::{POINT, RECT};
+use windows::Win32::UI::WindowsAndMessaging::{WS_CAPTION, WS_POPUP, WS_THICKFRAME};
 
 // ============================================================================
 // 1. Taskbar Search Term Parsing & Tokenization Tests
@@ -501,3 +502,125 @@ fn test_calculate_target_window_bounds_fallback_no_current_work_area() {
     assert_eq!(target_w, 800);
     assert_eq!(target_h, 600);
 }
+
+// ============================================================================
+// 6. Game Detection Tests (is_game)
+// ============================================================================
+
+#[test]
+fn test_is_game_engine_window_classes() {
+    let dummy_rect = RECT { left: 100, top: 100, right: 900, bottom: 700 };
+
+    // Unreal Engine
+    assert!(is_game("", "game", "UnrealWindow", "Game Title", 0, dummy_rect, None));
+    // Unity Engine
+    assert!(is_game("", "game", "UnityWndClass", "Game Title", 0, dummy_rect, None));
+    // Valve Source / Source 2
+    assert!(is_game("", "game", "Valve001", "Counter-Strike 2", 0, dummy_rect, None));
+    // SDL app (used by thousands of games on Steam)
+    assert!(is_game("", "game", "SDL_app", "Hades", 0, dummy_rect, None));
+    // GLFW
+    assert!(is_game("", "game", "GLFW30", "Minecraft", 0, dummy_rect, None));
+    // Godot Engine
+    assert!(is_game("", "game", "Godot_Engine", "Indie Game", 0, dummy_rect, None));
+    // CryEngine
+    assert!(is_game("", "game", "CryENGINE", "Crysis", 0, dummy_rect, None));
+
+    // Standard Desktop Apps (NOT games)
+    assert!(!is_game("c:\\windows\\notepad.exe", "notepad", "Notepad", "Untitled - Notepad", WS_CAPTION.0, dummy_rect, None));
+    assert!(!is_game("c:\\windows\\explorer.exe", "explorer", "CabinetWClass", "File Explorer", WS_CAPTION.0, dummy_rect, None));
+}
+
+#[test]
+fn test_is_game_launcher_installation_directories() {
+    let dummy_rect = RECT { left: 100, top: 100, right: 900, bottom: 700 };
+
+    // Steam library
+    assert!(is_game(
+        "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Cyberpunk 2077\\bin\\x64\\Cyberpunk2077.exe",
+        "cyberpunk2077",
+        "CustomWndClass",
+        "Cyberpunk 2077",
+        0,
+        dummy_rect,
+        None
+    ));
+
+    // Epic Games
+    assert!(is_game(
+        "D:\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64\\FortniteClient-Win64-Shipping.exe",
+        "fortniteclient-win64-shipping",
+        "WindowsApp",
+        "Fortnite",
+        0,
+        dummy_rect,
+        None
+    ));
+
+    // GOG Galaxy
+    assert!(is_game(
+        "C:\\GOG Galaxy\\Games\\The Witcher 3 Wild Hunt\\bin\\x64\\witcher3.exe",
+        "witcher3",
+        "Witcher3",
+        "The Witcher 3",
+        0,
+        dummy_rect,
+        None
+    ));
+
+    // Riot Games
+    assert!(is_game(
+        "C:\\Riot Games\\VALORANT\\live\\VALORANT.exe",
+        "valorant",
+        "RiotWindowClass",
+        "VALORANT",
+        0,
+        dummy_rect,
+        None
+    ));
+
+    // Non-game application in Program Files
+    assert!(!is_game(
+        "C:\\Program Files\\Microsoft VS Code\\Code.exe",
+        "code",
+        "Chrome_WidgetWin_1",
+        "Visual Studio Code",
+        WS_CAPTION.0,
+        dummy_rect,
+        None
+    ));
+}
+
+#[test]
+fn test_is_game_shipping_binaries_and_emulators() {
+    let dummy_rect = RECT { left: 100, top: 100, right: 900, bottom: 700 };
+
+    assert!(is_game("", "MyGame-Win64-Shipping", "Custom", "Game", 0, dummy_rect, None));
+    assert!(is_game("", "retroarch", "RetroArch", "RetroArch", 0, dummy_rect, None));
+    assert!(is_game("", "yuzu", "Qt5QWindowIcon", "yuzu", 0, dummy_rect, None));
+    assert!(is_game("", "dolphin", "wxWindowNR", "Dolphin", 0, dummy_rect, None));
+    assert!(is_game("", "rpcs3", "Qt5QWindowIcon", "RPCS3", 0, dummy_rect, None));
+}
+
+#[test]
+fn test_is_game_borderless_fullscreen_geometry() {
+    let monitor = MonitorInfo {
+        hmonitor: 1,
+        device_name: "\\\\.\\DISPLAY1".to_string(),
+        display_label: "Display 1 (1920x1080) - Primary".to_string(),
+        rect: RECT { left: 0, top: 0, right: 1920, bottom: 1080 },
+        work_area: RECT { left: 0, top: 0, right: 1920, bottom: 1040 },
+        is_primary: true,
+        width: 1920,
+        height: 1080,
+    };
+
+    // Borderless popup filling monitor -> detected as game/fullscreen presentation
+    let fullscreen_rect = RECT { left: 0, top: 0, right: 1920, bottom: 1080 };
+    assert!(is_game("", "unknown_app", "Custom", "Title", WS_POPUP.0, fullscreen_rect, Some(&monitor)));
+
+    // Standard window with caption (e.g. Word, Browser) covering most of screen -> NOT a game
+    let windowed_rect = RECT { left: 0, top: 0, right: 1900, bottom: 1000 };
+    assert!(!is_game("c:\\app\\app.exe", "app", "AppClass", "App", WS_CAPTION.0 | WS_THICKFRAME.0, windowed_rect, Some(&monitor)));
+}
+

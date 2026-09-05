@@ -4,7 +4,7 @@
 [![Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%2011%20%7C%2010-0078d4.svg)](https://microsoft.com/windows)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-20%20passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-24%20passed-brightgreen.svg)](tests/)
 [![Executable Size](https://img.shields.io/badge/binary-~300%20KB-success.svg)]()
 [![RAM Usage](https://img.shields.io/badge/RAM-~3%20MB-success.svg)]()
 
@@ -34,9 +34,13 @@ If you use 2, 3, or more monitors (especially mixed setups like an Ultrawide pai
 - 🖥️ **Instant Multi-Display Teleportation**  
   Hover over **Move to Monitor** to view a live menu of all connected screens, labeled with their display numbers, active resolutions, and primary display tags. One click transports the window immediately.
 
+- 🎮 **Gaming & Fullscreen Mode**  
+  - Automatically identifies games using engine classes (Unreal, Unity, Source, SDL, GLFW, CryEngine, Godot), launcher paths (Steam, Epic Games, GOG, Riot, Battle.net), shipping executables, or borderless presentations.
+  - Always teleports games in **True Fullscreen Mode** covering the target display's entire resolution canvas (above the taskbar).
+  - **Guaranteed Focus**: Bypasses Windows UIPI foreground restrictions via thread input queue sharing and dual-phase focus verification, ensuring games never lose controller/keyboard focus, drop FPS, or mute audio upon moving.
+
 - 🪟 **Smart Window State Preservation**  
   - **Maximized Windows**: Automatically restored, repositioned to the target monitor's working area, and re-maximized without glitching.
-  - **Borderless Fullscreen**: Automatically spans the full canvas of the target display.
   - **Floating Windows**: Coordinates are proportionally scaled and clamped within the target display's working area, preventing windows from spawning partially off-screen or behind the taskbar.
 
 - 🎨 **Windows 11 Fluent Aesthetics**  
