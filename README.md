@@ -84,7 +84,7 @@ flowchart LR
 
 ### Running DisplayHop
 
-1. Download the latest `window-display-swapper.exe` from the [Releases](https://github.com/) page.
+1. Download the latest `window-display-swapper.exe` from the [Releases](https://github.com/bookamp/DisplayHop/releases/latest) page.
 2. Double-click to run. DisplayHop will start quietly in your system tray (notification area).
 3. Right-click any app on your taskbar, hover over **Move to Monitor &gt;**, and choose your destination display!
 
